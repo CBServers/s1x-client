@@ -112,7 +112,7 @@ FARPROC load_binary(const launcher::mode mode)
 	if (!utils::io::read_file(binary, &data))
 	{
 		throw std::runtime_error(utils::string::va(
-			"Failed to read game binary (%s)!\nPlease select the correct path in the launcher settings.",
+			"Failed to read game binary (%s)!\nPlease make sure you have s1x.exe in your AW installation folder.",
 			binary.data()));
 	}
 
@@ -180,6 +180,15 @@ void apply_environment()
 	SetDllDirectoryA(buffer);
 }
 
+void check_if_has_s1()
+{
+	if (!utils::io::file_exists("s1_sp64_ship.exe") && !utils::io::file_exists("s1_mp64_ship.exe"))
+	{
+		throw std::runtime_error(
+			"Can't find a valid s1_sp64_ship.exe or s1_mp64_ship.exe. Make sure you put s1x.exe in your AW installation folder.");
+	}
+}
+
 int main()
 {
 	FARPROC entry_point;
@@ -204,6 +213,7 @@ int main()
 		try
 		{
 			apply_environment();
+			check_if_has_s1();
 			remove_crash_file();
 			updater::update();
 

@@ -11,6 +11,7 @@
 #include "game_console.hpp"
 #include "scheduler.hpp"
 #include "fastfiles.hpp"
+#include "notifies.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -44,6 +45,11 @@ namespace command
 			if (game::mp::g_entities[client_num].client == nullptr)
 			{
 				// Client is not fully connected
+				return;
+			}
+
+			if (!notifies::client_command_stub(client_num))
+			{
 				return;
 			}
 
