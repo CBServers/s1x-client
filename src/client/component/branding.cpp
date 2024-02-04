@@ -16,6 +16,7 @@ namespace branding
 	namespace
 	{
 		utils::hook::detour ui_get_formatted_build_number_hook;
+		const game::dvar_t* ui_showBranding;
 
 		const char* ui_get_formatted_build_number_stub()
 		{
@@ -46,8 +47,13 @@ namespace branding
 			ui_get_formatted_build_number_hook.create(
 				SELECT_VALUE(0x14035B3F0, 0x1404A8950), ui_get_formatted_build_number_stub);
 
+			ui_showBranding = game::Dvar_RegisterBool("ui_showBranding", false,
+				game::DVAR_FLAG_NONE, "Show S1x branding at the top left in-game");
+
 			scheduler::loop([]()
 			{
+				if (!ui_showBranding->current.enabled && !game::VirtualLobby_Loaded()) return;
+
 				const auto x = 4;
 				const auto y = 4;
 				const auto scale = 1.0f;
