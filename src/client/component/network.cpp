@@ -3,9 +3,10 @@
 #include "game/game.hpp"
 
 #include "command.hpp"
-#include "network.hpp"
 #include "console.hpp"
 #include "dvars.hpp"
+#include "network.hpp"
+#include "party.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -89,13 +90,17 @@ namespace network
 			return net_compare_base_address(a1, a2) && a1->port == a2->port;
 		}
 
-		void reconnect_migratated_client(void*, game::netadr_s* from, const int, const int, const char*,
-		                                 const char*, bool)
+		void reconnect_migrated_client(void*, game::netadr_s* from, const int, const int, const char*, const char*, bool)
 		{
 			// This happens when a client tries to rejoin after being recently disconnected, OR by a duplicated guid
 			// We don't want this to do anything. It decides to crash seemingly randomly
 			// Rather than try and let the player in, just tell them they are a duplicate player and reject connection
 			game::NET_OutOfBandPrint(game::NS_SERVER, from, "error\nYou are already connected to the server.");
+		}
+
+		void* memmove_stub(void* dest, const void* src, std::size_t count)
+		{
+			return std::memmove(dest, src, std::min<std::size_t>(count, 1262));
 		}
 	}
 
@@ -162,7 +167,7 @@ namespace network
 		{
 			if (a.port)
 			{
-				return utils::string::va("%u.%u.%u.%u:%u", a.ip[0], a.ip[1], a.ip[2], a.ip[3], htons(a.port));
+				return utils::string::va("%u.%u.%u.%u:%u", a.ip[0], a.ip[1], a.ip[2], a.ip[3], ::htons(a.port));
 			}
 
 			return utils::string::va("%u.%u.%u.%u", a.ip[0], a.ip[1], a.ip[2], a.ip[3]);
@@ -205,7 +210,7 @@ namespace network
 				utils::hook::nop(0x14043FFF8, 6);
 
 				utils::hook::jump(0x1403DA700, net_compare_address);
-				utils::hook::jump(0x1403DA750, net_compare_base_address);
+				utils::hook::jump(0x1403DA750, net_compare_address);
 
 				// don't establish secure conenction
 				utils::hook::set<uint8_t>(0x140232BBD, 0xEB);
@@ -239,8 +244,8 @@ namespace network
 				// ignore dw handle in SV_DirectConnect
 				utils::hook::set<uint8_t>(0x140439BA8, 0xEB);
 				utils::hook::set<uint8_t>(0x140439DA5, 0xEB);
-				utils::hook::call(0x140439B9B, &net_compare_address);
-				utils::hook::call(0x140439D98, &net_compare_address);
+				utils::hook::call(0x140439B9B, net_compare_address);
+				utils::hook::call(0x140439D98, net_compare_address);
 
 				// increase cl_maxpackets
 				dvars::override::register_int("cl_maxpackets", 1000, 1, 1000, game::DVAR_FLAG_SAVED);
@@ -259,7 +264,7 @@ namespace network
 				utils::hook::jump(0x1404D842B, 0x1404D8453);
 
 				// don't try to reconnect client
-				utils::hook::call(0x140439D4D, reconnect_migratated_client);
+				utils::hook::call(0x140439D4D, reconnect_migrated_client);
 				utils::hook::nop(0x140439D28, 4); // this crashes when reconnecting for some reason
 
 				// allow server owner to modify net_port before the socket bind
@@ -273,12 +278,24 @@ namespace network
 				utils::hook::set<int>(0x1403DAD14, max_packet_size);
 				utils::hook::set<int>(0x1403DAD35, max_packet_size);
 
-				// ignore built in "print" oob command and add in our own
+				// ignore built in "print" oob command for security reasons
 				utils::hook::set<std::uint8_t>(0x14020A723, 0xEB);
-				on("print", [](const game::netadr_s&, const std::string& data)
+				if (!game::environment::is_dedi())
 				{
-					console::info("%s", data.data());
-				});
+					// we need this on the client for RCon
+					on("print", [](const game::netadr_s& address, const std::string& message)
+					{
+						if (address != party::get_target())
+						{
+							return;
+						}
+
+						console::info("%s", message.data());
+					});
+				}
+
+				// patch buffer overflow
+				utils::hook::call(0x1403DA8A4, memmove_stub); // NET_DeferPacketToClient
 			}
 		}
 	};

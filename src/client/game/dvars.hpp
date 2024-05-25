@@ -39,6 +39,14 @@ namespace dvars
 
 	extern game::dvar_t* sv_cheats;
 
-	std::string dvar_get_vector_domain(const int components, const game::dvar_limits& domain);
-	std::string dvar_get_domain(const game::dvar_type type, const game::dvar_limits& domain);
+	extern game::dvar_t* com_developer;
+	extern game::dvar_t* com_developer_script;
+
+	extern game::dvar_t* master_server_ip;
+	extern game::dvar_t* master_server_port;
+
+	extern game::dvar_t* ui_showBranding;
+
+	std::string dvar_get_vector_domain(int components, const game::dvar_limits& domain);
+	std::string dvar_get_domain(game::dvar_type type, const game::dvar_limits& domain);
 }

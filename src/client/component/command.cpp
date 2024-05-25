@@ -11,7 +11,6 @@
 #include "game_console.hpp"
 #include "scheduler.hpp"
 #include "fastfiles.hpp"
-#include "notifies.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -45,11 +44,6 @@ namespace command
 			if (game::mp::g_entities[client_num].client == nullptr)
 			{
 				// Client is not fully connected
-				return;
-			}
-
-			if (!notifies::client_command_stub(client_num))
-			{
 				return;
 			}
 
@@ -295,7 +289,6 @@ namespace command
 		static void add_commands_generic()
 		{
 			add("quit", game::Com_Quit_f);
-			add("quit_hard", utils::nt::raise_hard_exception);
 			add("crash", []
 			{
 				*reinterpret_cast<int*>(1) = 0x12345678;

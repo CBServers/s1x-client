@@ -40,6 +40,14 @@ namespace dvars
 
 	game::dvar_t* sv_cheats = nullptr;
 
+	game::dvar_t* com_developer = nullptr;
+	game::dvar_t* com_developer_script = nullptr;
+
+	game::dvar_t* master_server_ip = nullptr;
+	game::dvar_t* master_server_port = nullptr;
+
+	game::dvar_t* ui_showBranding = nullptr;
+
 	std::string dvar_get_vector_domain(const int components, const game::dvar_limits& domain)
 	{
 		if (domain.vector.min == -FLT_MAX)
@@ -73,14 +81,14 @@ namespace dvars
 		switch (type)
 		{
 		case game::dvar_type::boolean:
-			return "Domain is 0 or 1"s;
+			return "Domain is 0 or 1";
 
 		case game::dvar_type::value:
 			if (domain.value.min == -FLT_MAX)
 			{
 				if (domain.value.max == FLT_MAX)
 				{
-					return "Domain is any number"s;
+					return "Domain is any number";
 				}
 				else
 				{
@@ -111,7 +119,7 @@ namespace dvars
 			{
 				if (domain.integer.max == INT_MAX)
 				{
-					return "Domain is any integer"s;
+					return "Domain is any integer";
 				}
 				else
 				{
@@ -128,10 +136,10 @@ namespace dvars
 			}
 
 		case game::dvar_type::color:
-			return "Domain is any 4-component color, in RGBA format"s;
+			return "Domain is any 4-component color, in RGBA format";
 
 		case game::dvar_type::enumeration:
-			str = "Domain is one of the following:"s;
+			str = "Domain is one of the following:";
 
 			for (auto string_index = 0; string_index < domain.enumeration.stringCount; ++string_index)
 			{
@@ -141,7 +149,7 @@ namespace dvars
 			return str;
 
 		case game::dvar_type::string:
-			return "Domain is any text"s;
+			return "Domain is any text";
 
 		default:
 			return utils::string::va("unhandled dvar type '%i'", type);

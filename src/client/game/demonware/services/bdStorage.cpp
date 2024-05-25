@@ -7,11 +7,18 @@
 #include <utils/io.hpp>
 #include <utils/cryptography.hpp>
 
-#include <component/motd.hpp>
 #include <component/filesystem.hpp>
 
 namespace demonware
 {
+	namespace
+	{
+		std::string get_motd_text()
+		{
+			return "Welcome to S1x.";
+		}
+	}
+
 	bdStorage::bdStorage() : service(10, "bdStorage")
 	{
 		this->register_task(6, &bdStorage::list_publisher_files);
@@ -20,7 +27,7 @@ namespace demonware
 		this->register_task(12, &bdStorage::get_user_file);
 		this->register_task(13, &bdStorage::unk13);
 
-		this->map_publisher_resource_variant(".*\\motd-.*\\.txt", motd::get_text);
+		this->map_publisher_resource_variant(".*\\motd-.*\\.txt", get_motd_text);
 		this->map_publisher_resource("ffotd-.*\\.ff", "dw/ffotd-1.22.1.ff", DW_FASTFILE);
 		this->map_publisher_resource("playlists(_.+)?\\.aggr", "dw/playlists_tu22.aggr", DW_PLAYLISTS);
 		this->map_publisher_resource("social_[Tt][Uu][0-9]+\\.cfg", "dw/social_tu22.cfg", DW_SOCIAL_CONFIG);

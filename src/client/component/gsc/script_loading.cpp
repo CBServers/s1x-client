@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
+#include "game/dvars.hpp"
 
 #include <utils/compression.hpp>
 #include <utils/hook.hpp>
@@ -10,7 +11,6 @@
 #include "component/filesystem.hpp"
 #include "component/console.hpp"
 #include "component/scripting.hpp"
-#include "component/fastfiles.hpp"
 
 #include "script_loading.hpp"
 
@@ -25,8 +25,6 @@ namespace gsc
 
 		std::unordered_map<std::string, game::ScriptFile*> loaded_scripts;
 		utils::memory::allocator script_allocator;
-
-		const game::dvar_t* developer_script;
 
 		void clear()
 		{
@@ -101,17 +99,17 @@ namespace gsc
 				const auto script_file_ptr = static_cast<game::ScriptFile*>(script_allocator.allocate(sizeof(game::ScriptFile)));
 				script_file_ptr->name = file_name;
 
-				script_file_ptr->len = static_cast<int>(output_script.second.size);
-				script_file_ptr->bytecodeLen = static_cast<int>(output_script.first.size);
+				script_file_ptr->bytecodeLen = static_cast<int>(std::get<0>(output_script).size);
+				script_file_ptr->len = static_cast<int>(std::get<1>(output_script).size);
 
-				const auto stack_size = static_cast<std::uint32_t>(output_script.second.size + 1);
-				const auto byte_code_size = static_cast<std::uint32_t>(output_script.first.size + 1);
+				const auto byte_code_size = static_cast<std::uint32_t>(std::get<0>(output_script).size + 1);
+				const auto stack_size = static_cast<std::uint32_t>(std::get<1>(output_script).size + 1);
 
 				script_file_ptr->buffer = static_cast<char*>(script_allocator.allocate(stack_size));
-				std::memcpy(const_cast<char*>(script_file_ptr->buffer), output_script.second.data, output_script.second.size);
+				std::memcpy(const_cast<char*>(script_file_ptr->buffer), std::get<1>(output_script).data, std::get<1>(output_script).size);
 
 				script_file_ptr->bytecode = static_cast<std::uint8_t*>(game::PMem_AllocFromSource_NoDebug(byte_code_size, 4, 1, 5));
-				std::memcpy(script_file_ptr->bytecode, output_script.first.data, output_script.first.size);
+				std::memcpy(script_file_ptr->bytecode, std::get<0>(output_script).data, std::get<0>(output_script).size);
 
 				script_file_ptr->compressedLen = 0;
 
@@ -126,16 +124,6 @@ namespace gsc
 				console::error("**********************************************\n");
 				return nullptr;
 			}
-		}
-
-		std::string get_raw_script_file_name(const std::string& name)
-		{
-			if (name.ends_with(".gsh"))
-			{
-				return name;
-			}
-
-			return name + ".gsc";
 		}
 
 		std::string get_script_file_name(const std::string& name)
@@ -238,18 +226,6 @@ namespace gsc
 
 			clear();
 
-			fastfiles::enum_assets(game::ASSET_TYPE_RAWFILE, [](const game::XAssetHeader header)
-			{
-				const std::string name = header.rawfile->name;
-
-				if (name.ends_with(".gsc") && name.starts_with("scripts/"))
-				{
-					// Remove .gsc from the file name as it will be re-added by the game later
-					const auto base_name = name.substr(0, name.size() - 4);
-					load_script(base_name);
-				}
-			}, true);
-
 			for (const auto& path : filesystem::get_search_paths())
 			{
 				load_scripts(path);
@@ -302,24 +278,32 @@ namespace gsc
 
 		void scr_begin_load_scripts_stub()
 		{
-			const auto comp_mode = developer_script->current.enabled ?
-				xsk::gsc::build::dev :
-				xsk::gsc::build::prod;
+			auto build = xsk::gsc::build::prod;
 
-			gsc_ctx->init(comp_mode, [](const std::string& include_name) -> std::pair<xsk::gsc::buffer, std::vector<std::uint8_t>>
+			if (dvars::com_developer && dvars::com_developer->current.integer > 0)
 			{
-				const auto real_name = get_raw_script_file_name(include_name);
+				build = static_cast<xsk::gsc::build>(static_cast<unsigned int>(build) | static_cast<unsigned int>(xsk::gsc::build::dev_maps));
+			}
+
+			if (dvars::com_developer_script && dvars::com_developer_script->current.enabled)
+			{
+				build = static_cast<xsk::gsc::build>(static_cast<unsigned int>(build) | static_cast<unsigned int>(xsk::gsc::build::dev_blocks));
+			}
+
+			gsc_ctx->init(build, []([[maybe_unused]] auto const* ctx, const auto& included_path) -> std::pair<xsk::gsc::buffer, std::vector<std::uint8_t>>
+			{
+				const auto script_name = std::filesystem::path(included_path).replace_extension().string();
 
 				std::string file_buffer;
-				if (!read_raw_script_file(real_name, &file_buffer) || file_buffer.empty())
+				if (!read_raw_script_file(included_path, &file_buffer) || file_buffer.empty())
 				{
-					const auto name = get_script_file_name(include_name);
+					const auto name = get_script_file_name(script_name);
 					if (game::DB_XAssetExists(game::ASSET_TYPE_SCRIPTFILE, name.data()))
 					{
-						return read_compiled_script_file(name, real_name);
+						return read_compiled_script_file(name, script_name);
 					}
 
-					throw std::runtime_error(std::format("Could not load gsc file '{}'", real_name));
+					throw std::runtime_error(std::format("Could not load gsc file '{}'", script_name));
 				}
 
 				std::vector<std::uint8_t> script_data;
@@ -374,7 +358,8 @@ namespace gsc
 			utils::hook::call(SELECT_VALUE(0x1403309E9, 0x1403309E9), scr_begin_load_scripts_stub); // GScr_LoadScripts
 			utils::hook::call(SELECT_VALUE(0x14023DA84, 0x140330B9C), scr_end_load_scripts_stub); // GScr_LoadScripts
 
-			developer_script = game::Dvar_RegisterBool("developer_script", false, game::DVAR_FLAG_NONE, "Enable developer script comments");
+			dvars::com_developer = game::Dvar_RegisterInt("developer", 0, 0, 2, game::DVAR_FLAG_NONE, "Enable development options");
+			dvars::com_developer_script = game::Dvar_RegisterBool("developer_script", false, game::DVAR_FLAG_NONE, "Enable developer script comments");
 
 			if (game::environment::is_sp())
 			{

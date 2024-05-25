@@ -129,8 +129,8 @@ namespace discord
 
 			scheduler::once([]
 			{
-				scheduler::once(update_discord, scheduler::pipeline::async);
-				scheduler::loop(update_discord, scheduler::pipeline::async, 15s);
+				scheduler::once(update_discord, scheduler::pipeline::main);
+				scheduler::loop(update_discord, scheduler::pipeline::main, 15s);
 			}, scheduler::pipeline::main);
 
 			initialized_ = true;

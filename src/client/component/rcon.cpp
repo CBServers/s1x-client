@@ -16,6 +16,7 @@ namespace rcon
 	{
 		bool is_redirecting_ = false;
 		game::netadr_s redirect_target_ = {};
+		std::string redirect_buffer = {};
 		std::recursive_mutex redirect_lock;
 
 		void setup_redirect(const game::netadr_s& target)
@@ -24,14 +25,18 @@ namespace rcon
 
 			is_redirecting_ = true;
 			redirect_target_ = target;
+			redirect_buffer.clear();
 		}
 
 		void clear_redirect()
 		{
 			std::lock_guard<std::recursive_mutex> $(redirect_lock);
 
+			network::send(redirect_target_, "print", redirect_buffer, '\n');
+
 			is_redirecting_ = false;
 			redirect_target_ = {};
+			redirect_buffer.clear();
 		}
 
 		void send_rcon_command(const std::string& password, const std::string& data)
@@ -63,35 +68,29 @@ namespace rcon
 
 		std::string build_status_buffer()
 		{
-			const auto sv_maxclients = game::Dvar_FindVar("sv_maxclients");
-			const auto mapname = game::Dvar_FindVar("mapname");
+			const auto* sv_maxclients = game::Dvar_FindVar("sv_maxclients");
+			const auto* mapname = game::Dvar_FindVar("mapname");
 
 			std::string buffer{};
 			buffer.append(utils::string::va("map: %s\n", mapname->current.string));
-			buffer.append(
-				"num score bot ping guid                             name             address               qport\n");
-			buffer.append(
-				"--- ----- --- ---- -------------------------------- ---------------- --------------------- -----\n");
+			buffer.append("num score bot ping guid                             name             address               qport\n");
+			buffer.append("--- ----- --- ---- -------------------------------- ---------------- --------------------- -----\n");
 
 			for (int i = 0; i < sv_maxclients->current.integer; i++)
 			{
 				const auto client = &game::mp::svs_clients[i];
 
-				char clean_name[32] = { 0 };
-				strncpy_s(clean_name, client->name, sizeof(clean_name));
+				char clean_name[32]{};
+				strncpy_s(clean_name, client->name, _TRUNCATE);
 				game::I_CleanStr(clean_name);
 
-				if (client->header.state >= 1)
+				if (client->header.state > game::CA_DISCONNECTED)
 				{
 					buffer.append(utils::string::va("%3i %5i %3s %s %32s %16s %21s %5i\n",
 						i,
 						game::G_GetClientScore(i),
 						game::SV_BotIsBot(i) ? "Yes" : "No",
-						(client->header.state == 2)
-						? "CNCT"
-						: (client->header.state == 1)
-						? "ZMBI"
-						: utils::string::va("%4i", game::SV_GetClientPing(i)),
+						(client->header.state == 2) ? "CNCT" : (client->header.state == 1) ? "ZMBI" : utils::string::va("%4i", game::SV_GetClientPing(i)),
 						game::SV_GetGuid(i),
 						clean_name,
 						network::net_adr_to_string(client->header.remoteAddress),
@@ -110,7 +109,7 @@ namespace rcon
 
 		if (is_redirecting_)
 		{
-			network::send(redirect_target_, "print", message);
+			redirect_buffer.append(message);
 			return true;
 		}
 		
@@ -142,13 +141,13 @@ namespace rcon
 					return;
 				}
 
-				auto status_buffer = build_status_buffer();
-				console::info(status_buffer.data());
+				const auto status = build_status_buffer();
+				console::info("%s", status.data());
 			});
 
 			if (!game::environment::is_dedi())
 			{
-				command::add("rcon", [&](const command::params& params)
+				command::add("rcon", [](const command::params& params)
 				{
 					static std::string rcon_password{};
 
@@ -185,9 +184,8 @@ namespace rcon
 
 					const auto password = message.substr(0, pos);
 					const auto command = message.substr(pos + 1);
-					const auto rcon_password = game::Dvar_FindVar("rcon_password");
-					if (command.empty() || !rcon_password || !rcon_password->current.string || !strlen(
-						rcon_password->current.string))
+					const auto* rcon_password = game::Dvar_FindVar("rcon_password");
+					if (command.empty() || !rcon_password || !*rcon_password->current.string)
 					{
 						return;
 					}

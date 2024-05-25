@@ -13,6 +13,9 @@
 #include <utils/string.hpp>
 #include <utils/hook.hpp>
 
+#define DEFAULT_MASTER_SERVER_IP "server.alterware.dev"
+#define DEFAULT_MASTER_SERVER_PORT "20810"
+
 namespace server_list
 {
 	namespace
@@ -47,9 +50,6 @@ namespace server_list
 		size_t server_list_page = 0;
 		volatile bool update_server_list = false;
 		std::chrono::high_resolution_clock::time_point last_scroll{};
-
-		game::dvar_t* master_server_ip;
-		game::dvar_t* master_server_port;
 
 		size_t get_page_count()
 		{
@@ -309,8 +309,14 @@ namespace server_list
 
 	bool get_master_server(game::netadr_s& address)
 	{
+		if (dvars::master_server_ip && dvars::master_server_port)
+		{
+			return game::NET_StringToAdr(utils::string::va("%s:%s",
+				dvars::master_server_ip->current.string, dvars::master_server_port->current.string), &address);
+		}
+		
 		return game::NET_StringToAdr(utils::string::va("%s:%s",
-			master_server_ip->current.string, master_server_port->current.string), &address);
+			DEFAULT_MASTER_SERVER_IP, DEFAULT_MASTER_SERVER_PORT), &address); //fallback
 	}
 
 	void handle_info_response(const game::netadr_s& address, const utils::info_string& info)
@@ -380,9 +386,9 @@ namespace server_list
 				scheduler::once([]()
 				{
 					// add dvars to change destination master server ip/port
-					master_server_ip = game::Dvar_RegisterString("masterServerIP", "server.alterware.dev", game::DVAR_FLAG_NONE,
+					dvars::master_server_ip = game::Dvar_RegisterString("masterServerIP", DEFAULT_MASTER_SERVER_IP, game::DVAR_FLAG_NONE,
 						"IP of the destination master server to connect to");
-					master_server_port = game::Dvar_RegisterString("masterServerPort", "20810", game::DVAR_FLAG_NONE,
+					dvars::master_server_port = game::Dvar_RegisterString("masterServerPort", DEFAULT_MASTER_SERVER_PORT, game::DVAR_FLAG_NONE,
 							"Port of the destination master server to connect to");
 				}, scheduler::pipeline::main);
 			}

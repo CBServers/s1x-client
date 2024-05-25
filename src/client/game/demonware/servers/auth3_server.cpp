@@ -50,7 +50,12 @@ namespace demonware
 		std::string token{};
 
 		rapidjson::Document j;
-		j.Parse(packet.data(), packet.size());
+		const rapidjson::ParseResult parse_result = j.Parse(packet);
+
+		if (!parse_result || !j.IsObject())
+		{
+			return;
+		}
 
 		if (j.HasMember("title_id") && j["title_id"].IsString())
 		{

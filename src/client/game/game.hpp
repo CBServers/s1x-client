@@ -58,13 +58,16 @@ namespace game
 		T* mp_object_;
 	};
 
-	int Cmd_Argc();
-	const char* Cmd_Argv(int index);
+	[[nodiscard]] int Cmd_Argc();
+	[[nodiscard]] const char* Cmd_Argv(int index);
 
-	int SV_Cmd_Argc();
-	const char* SV_Cmd_Argv(int index);
+	[[nodiscard]] int SV_Cmd_Argc();
+	[[nodiscard]] const char* SV_Cmd_Argv(int index);
 
-	bool VirtualLobby_Loaded();
+	[[nodiscard]] bool VirtualLobby_Loaded();
+
+	[[nodiscard]] bool is_headless();
+	void show_error(const std::string& text, const std::string& title = "Error");
 }
 
 #include "symbols.hpp"

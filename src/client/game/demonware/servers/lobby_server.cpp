@@ -11,7 +11,6 @@ namespace demonware
 	lobby_server::lobby_server(std::string name) : tcp_server(std::move(name))
 	{
 		this->register_service<bdAnticheat>();
-		this->register_service<bdBandwidthTest>();
 		this->register_service<bdContentStreaming>();
 		this->register_service<bdDML>();
 		this->register_service<bdEventLog>();

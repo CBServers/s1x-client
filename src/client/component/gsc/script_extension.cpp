@@ -1,11 +1,14 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
+#include "game/dvars.hpp"
+
 #include "game/scripting/functions.hpp"
 
 #include <utils/hook.hpp>
 
 #include "component/console.hpp"
+#include "component/notifies.hpp"
 #include "component/command.hpp"
 
 #include "script_error.hpp"
@@ -18,8 +21,6 @@ namespace gsc
 {
 	std::uint16_t function_id_start = 0x2DF;
 	void* func_table[0x1000];
-
-	const game::dvar_t* developer_script = nullptr;
 
 	namespace
 	{
@@ -135,7 +136,7 @@ namespace gsc
 
 		void vm_error_stub(int mark_pos)
 		{
-			if (!developer_script->current.enabled && !force_error_print)
+			if (!dvars::com_developer_script->current.enabled && !force_error_print)
 			{
 				utils::hook::invoke<void>(0x1404B6790, mark_pos);
 				return;
@@ -219,6 +220,25 @@ namespace gsc
 		{
 			scr_error(utils::string::va("Assert fail: %s", game::Scr_GetString(0)));
 		}
+
+		const char* get_code_pos(const int index)
+		{
+			if (static_cast<unsigned int>(index) >= game::scr_VmPub->outparamcount)
+			{
+				scr_error("Scr_GetCodePos: index is out of range");
+				return "";
+			}
+
+			const auto* value = &game::scr_VmPub->top[-index];
+
+			if (value->type != game::VAR_FUNCTION)
+			{
+				scr_error("Scr_GetCodePos requires a function as parameter");
+				return "";
+			}
+
+			return value->u.codePosValue;
+		}
 	}
 
 	void scr_error(const char* error)
@@ -263,8 +283,6 @@ namespace gsc
 				return;
 			}
 
-			developer_script = game::Dvar_RegisterBool("developer_script", false, game::DVAR_FLAG_NONE, "Enable developer script comments");
-
 			utils::hook::nop(0x1403FB7F7 + 5, 2);
 			utils::hook::call(0x1403FB7F7, vm_call_builtin_function);
 
@@ -276,10 +294,25 @@ namespace gsc
 			override_function("assertex", &assert_ex_cmd);
 			override_function("assertmsg", &assert_msg_cmd);
 
+			add_function("replacefunc", []
+			{
+				if (scr_get_type(0) != game::VAR_FUNCTION || scr_get_type(1) != game::VAR_FUNCTION)
+				{
+					throw gsc_error("Parameter must be a function");
+				}
+
+				notifies::set_gsc_hook(get_code_pos(0), get_code_pos(1));
+			});
+
 			add_function("executecommand", []
 			{
 				const auto* cmd = game::Scr_GetString(0);
 				command::execute(cmd);
+			});
+
+			add_function("isdedicated", []
+			{
+				game::Scr_AddInt(game::environment::is_dedi());
 			});
 		}
 	};

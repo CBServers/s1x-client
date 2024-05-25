@@ -1,10 +1,12 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
-#include "scheduler.hpp"
 #include "game/game.hpp"
+
+#include "scheduler.hpp"
+
+#include <utils/concurrency.hpp>
 #include <utils/hook.hpp>
 #include <utils/thread.hpp>
-#include <utils/concurrency.hpp>
 
 namespace scheduler
 {
@@ -175,10 +177,10 @@ namespace scheduler
 
 		void post_unpack() override
 		{
-			r_end_frame_hook.create(SELECT_VALUE(0x1404A3E20, 0x1405C25B0), scheduler::r_end_frame_stub);
+			r_end_frame_hook.create(SELECT_VALUE(0x1404A3E20, 0x1405C25B0), r_end_frame_stub);
 
-			utils::hook::call(SELECT_VALUE(0x1402F7DC2, 0x1403CEEE2), scheduler::main_frame_stub);
-			utils::hook::call(SELECT_VALUE(0x140228647, 0x1402F8879), scheduler::server_frame_stub);
+			utils::hook::call(SELECT_VALUE(0x1402F7DC2, 0x1403CEEE2), main_frame_stub);
+			utils::hook::call(SELECT_VALUE(0x140228647, 0x1402F8879), server_frame_stub);
 		}
 
 		void pre_destroy() override

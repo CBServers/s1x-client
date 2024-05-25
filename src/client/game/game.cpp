@@ -1,6 +1,8 @@
 #include <std_include.hpp>
 #include "game.hpp"
 
+#include <utils/flags.hpp>
+
 namespace game
 {
 	int Cmd_Argc()
@@ -105,6 +107,24 @@ namespace game
 			default:
 				return "Unknown (" + std::to_string(static_cast<int>(mode)) + ")";
 			}
+		}
+	}
+
+	bool is_headless()
+	{
+		static const auto headless = utils::flags::has_flag("headless");
+		return headless;
+	}
+
+	void show_error(const std::string& text, const std::string& title)
+	{
+		if (is_headless())
+		{
+			puts(text.data());
+		}
+		else
+		{
+			MessageBoxA(nullptr, text.data(), title.data(), MB_ICONERROR | MB_SETFOREGROUND | MB_TOPMOST);
 		}
 	}
 }

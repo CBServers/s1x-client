@@ -3,6 +3,8 @@
 #include "seh.hpp"
 #include "tls.hpp"
 
+#include "game/game.hpp"
+
 #include <utils/string.hpp>
 #include <utils/hook.hpp>
 
@@ -155,7 +157,7 @@ void loader::load_exception_table(const utils::nt::library& target, const utils:
 
 	if (!RtlAddFunctionTable(function_list, entry_count, DWORD64(target.get_ptr())))
 	{
-		MessageBoxA(nullptr, "Setting exception handlers failed.", "Error", MB_OK | MB_ICONERROR);
+		game::show_error("Setting exception handlers failed.");
 	}
 
 	{

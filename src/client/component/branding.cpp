@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
+#include "game/dvars.hpp"
 
 #include "localized_strings.hpp"
 #include "scheduler.hpp"
@@ -16,7 +17,6 @@ namespace branding
 	namespace
 	{
 		utils::hook::detour ui_get_formatted_build_number_hook;
-		const game::dvar_t* ui_showBranding;
 
 		const char* ui_get_formatted_build_number_stub()
 		{
@@ -47,12 +47,14 @@ namespace branding
 			ui_get_formatted_build_number_hook.create(
 				SELECT_VALUE(0x14035B3F0, 0x1404A8950), ui_get_formatted_build_number_stub);
 
-			ui_showBranding = game::Dvar_RegisterBool("ui_showBranding", false,
-				game::DVAR_FLAG_NONE, "Show S1x branding at the top left in-game");
+			dvars::ui_showBranding = game::Dvar_RegisterBool("ui_showBranding", false, game::DVAR_FLAG_SAVED, "Show S1x branding at the top left in-game");
 
 			scheduler::loop([]()
 			{
-				if (!ui_showBranding->current.enabled && !game::VirtualLobby_Loaded()) return;
+				if (dvars::ui_showBranding && !dvars::ui_showBranding->current.enabled && game::CL_IsCgameInitialized())
+				{
+					return;
+				}
 
 				const auto x = 4;
 				const auto y = 4;
@@ -64,7 +66,7 @@ namespace branding
 
 				if (!font) return;
 
-				game::R_AddCmdDrawText(text, 0x7FFFFFFF, font, static_cast<float>(x),
+				game::R_AddCmdDrawText(text, std::numeric_limits<int>::max(), font, static_cast<float>(x),
 				                       y + static_cast<float>(font->pixelHeight) * scale,
 				                       scale, scale, 0.0f, color, 0);
 			}, scheduler::pipeline::renderer);

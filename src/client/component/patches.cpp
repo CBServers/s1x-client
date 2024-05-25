@@ -5,13 +5,13 @@
 
 #include "command.hpp"
 #include "console.hpp"
-#include "scheduler.hpp"
-#include "filesystem.hpp"
-#include "fastfiles.hpp"
 #include "dvars.hpp"
+#include "fastfiles.hpp"
+#include "filesystem.hpp"
+#include "scheduler.hpp"
 
-#include <utils/string.hpp>
 #include <utils/hook.hpp>
+#include <utils/string.hpp>
 
 #include <version.hpp>
 
@@ -35,6 +35,7 @@ namespace patches
 			{
 				return;
 			}
+
 			return sv_kick_client_num_hook.invoke<void>(client_num, reason);
 		}
 
@@ -66,23 +67,17 @@ namespace patches
 			return com_register_dvars_hook.invoke<void>();
 		}
 
-		game::dvar_t* register_com_maxfps_stub(const char* name, int /*value*/, int /*min*/, int /*max*/,
-		                                       const unsigned int /*flags*/,
-		                                       const char* description)
+		game::dvar_t* register_com_maxfps_stub(const char* name, int /*value*/, int /*min*/, int /*max*/, const unsigned int /*flags*/, const char* description)
 		{
 			return game::Dvar_RegisterInt(name, 0, 0, 1000, game::DVAR_FLAG_SAVED, description);
 		}
 
-		game::dvar_t* register_cg_fov_stub(const char* name, float value, float min, float /*max*/,
-		                                   const unsigned int /*flags*/,
-		                                   const char* description)
+		game::dvar_t* register_cg_fov_stub(const char* name, float value, float min, float /*max*/, const unsigned int /*flags*/, const char* description)
 		{
 			return game::Dvar_RegisterFloat(name, value, min, 160, game::DVAR_FLAG_SAVED, description);
 		}
 
-		game::dvar_t* register_fovscale_stub(const char* name, float /*value*/, float /*min*/, float /*max*/,
-		                                     unsigned int /*flags*/,
-		                                     const char* desc)
+		game::dvar_t* register_fovscale_stub(const char* name, float /*value*/, float /*min*/, float /*max*/, unsigned int /*flags*/, const char* desc)
 		{
 			return game::Dvar_RegisterFloat(name, 1.0f, 0.2f, 5.0f, game::DVAR_FLAG_SAVED, desc);
 		}
@@ -99,14 +94,14 @@ namespace patches
 			{
 				if (args.size() == 1)
 				{
-					const auto* const current = game::Dvar_ValueToString(dvar, dvar->current);
-					const auto* const reset = game::Dvar_ValueToString(dvar, dvar->reset);
-					console::info("\"%s\" is: \"%s^7\" default: \"%s^7\"\n", dvar->name, current, reset);
+					const std::string current = game::Dvar_ValueToString(dvar, dvar->current);
+					const std::string reset = game::Dvar_ValueToString(dvar, dvar->reset);
+					console::info("\"%s\" is: \"%s^7\" default: \"%s^7\"\n", dvar->name, current.data(), reset.data());
 					console::info("   %s\n", dvars::dvar_get_domain(dvar->type, dvar->domain).data());
 				}
 				else
 				{
-					char command[0x1000] = {0};
+					char command[0x1000]{};
 					game::Dvar_GetCombinedString(command, 1);
 					game::Dvar_SetCommand(args.get(0), command);
 				}
@@ -145,8 +140,7 @@ namespace patches
 
 		void missing_content_error_stub(int /*mode*/, const char* /*message*/)
 		{
-			game::Com_Error(game::ERR_DROP,
-			                utils::string::va("MISSING FILE\n%s.ff", fastfiles::get_current_fastfile().data()));
+			game::Com_Error(game::ERR_DROP, utils::string::va("MISSING FILE\n%s.ff", fastfiles::get_current_fastfile().data()));
 		}
 
 		void bsp_sys_error_stub(const char* error, const char* arg1)
@@ -233,10 +227,6 @@ namespace patches
 				SetThreadExecutionState(ES_DISPLAY_REQUIRED);
 			}, scheduler::pipeline::main);
 
-			// Allow kbam input when gamepad is enabled
-			utils::hook::nop(SELECT_VALUE(0x14013EF83, 0x140206DB3), 2);
-			utils::hook::nop(SELECT_VALUE(0x14013CBAC, 0x140204710), 6);
-
 			if (game::environment::is_sp())
 			{
 				patch_sp();
@@ -262,9 +252,7 @@ namespace patches
 			utils::hook::call(0x14026E63B, bsp_sys_error_stub);
 
 			// client side aim assist dvar
-			dvars::aimassist_enabled = game::Dvar_RegisterBool("aimassist_enabled", true,
-			                                                   game::DvarFlags::DVAR_FLAG_SAVED,
-			                                                   "Enables aim assist for controllers");
+			dvars::aimassist_enabled = game::Dvar_RegisterBool("aimassist_enabled", true, game::DVAR_FLAG_SAVED, "Enables aim assist for controllers");
 			utils::hook::call(0x140003609, aim_assist_add_to_target_list);
 
 			// isProfanity
@@ -284,7 +272,7 @@ namespace patches
 			// don't register every replicated dvar as a network dvar
 			utils::hook::nop(0x1403534BE, 5); // dvar_foreach
 
-			// patch "Server is different version" to show the server client version
+			// Patch "Server is on a different version"
 			utils::hook::inject(0x1404398B2, VERSION);
 
 			// prevent servers overriding our fov
@@ -315,9 +303,9 @@ namespace patches
 			dvars::override::register_int("sv_timeout", 90, 90, 1800, game::DVAR_FLAG_NONE); // 30 - 0 - 1800
 			dvars::override::register_int("cl_connectTimeout", 120, 120, 1800, game::DVAR_FLAG_NONE); // Seems unused
 			dvars::override::register_int("sv_connectTimeout", 120, 120, 1800, game::DVAR_FLAG_NONE); // 60 - 0 - 1800
-      
+
 			game::Dvar_RegisterInt("scr_game_spectatetype", 1, 0, 99, game::DVAR_FLAG_REPLICATED, "");
-      
+
 			// Prevent clients from ending the game as non host by sending 'end_game' lui notification
 			cmd_lui_notify_server_hook.create(0x1402E9390, cmd_lui_notify_server_stub);
 		}
