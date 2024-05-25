@@ -35,19 +35,12 @@
 [submodule "deps/WinToast"]
 	path = deps/WinToast
 	url = https://github.com/mohabouje/WinToast.git
-[submodule "deps/sol2"]
-	path = deps/sol2
-	url = https://github.com/ThePhD/sol2.git
-[submodule "deps/lua"]
-	path = deps/lua
-	url = https://github.com/lua/lua.git
 [submodule "deps/stb"]
 	path = deps/stb
 	url = https://github.com/nothings/stb.git
 [submodule "deps/gsc-tool"]
 	path = deps/gsc-tool
 	url = https://github.com/xensik/gsc-tool.git
-	branch = dev
 [submodule "deps/curl"]
 	path = deps/curl
 	url = https://github.com/curl/curl.git

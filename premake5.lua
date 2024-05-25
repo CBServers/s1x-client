@@ -294,7 +294,7 @@ links {"common"}
 dependencies.imports()
 
 project "client"
-kind "ConsoleApp"
+kind "WindowedApp"
 language "C++"
 
 targetname "s1x"
