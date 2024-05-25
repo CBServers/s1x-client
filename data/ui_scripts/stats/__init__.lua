@@ -1,3 +1,21 @@
+local isclasslocked = Cac.IsCustomClassLocked
+Cac.IsCustomClassLocked = function(...)
+	if (Engine.GetDvarBool("cg_unlockall_classes")) then
+		return false
+	end
+
+	return isclasslocked(table.unpack({ ... }))
+end
+
+local isdlcclasslocked = Cac.IsCustomClassDlcLocked
+Cac.IsCustomClassDlcLocked = function(...)
+	if (Engine.GetDvarBool("cg_unlockall_classes")) then
+		return false
+	end
+
+	return isdlcclasslocked(table.unpack({ ... }))
+end
+
 if (game:issingleplayer() or not Engine.InFrontend()) then
 	return
 end
@@ -6,12 +24,13 @@ game:addlocalizedstring("LUA_MENU_STATS", "Stats")
 game:addlocalizedstring("LUA_MENU_STATS_DESC", "Edit player stats settings.")
 
 game:addlocalizedstring("LUA_MENU_UNLOCKALL_ITEMS", "Unlock All Items")
-game:addlocalizedstring("LUA_MENU_UNLOCKALL_ITEMS_DESC",
-	"Whether items should be locked based on the player's stats or always unlocked.")
+game:addlocalizedstring("LUA_MENU_UNLOCKALL_ITEMS_DESC", "Unlock items that are level-locked by the player's stats.")
+
+game:addlocalizedstring("LUA_MENU_UNLOCKALL_LOOT", "Unlock All Loot")
+game:addlocalizedstring("LUA_MENU_UNLOCKALL_LOOT_DESC", "Unlock supply drop loot.")
 
 game:addlocalizedstring("LUA_MENU_UNLOCKALL_CLASSES", "Unlock All Classes")
-game:addlocalizedstring("LUA_MENU_UNLOCKALL_CLASSES_DESC",
-	"Whether classes should be locked based on the player's stats or always unlocked.")
+game:addlocalizedstring("LUA_MENU_UNLOCKALL_CLASSES_DESC", "Unlock extra class slots.")
 
 game:addlocalizedstring("LUA_MENU_PRESTIGE", "Prestige")
 game:addlocalizedstring("LUA_MENU_PRESTIGE_DESC", "Edit prestige level.")
@@ -20,7 +39,6 @@ game:addlocalizedstring("LUA_MENU_RANK_DESC", "Edit rank.")
 
 local armorybutton = LUI.MPLobbyBase.AddArmoryButton
 LUI.MPLobbyBase.AddArmoryButton = function(menu)
-	armorybutton(menu)
 	menu:AddButton("@LUA_MENU_STATS", function(a1, a2)
 		LUI.FlowManager.RequestAddMenu(a1, "menu_stats", true, nil)
 	end)
@@ -93,6 +111,15 @@ LUI.MenuBuilder.registerType("menu_stats", function(a1, a2)
 			ToggleEnable("cg_unlockall_items")
 		end, function()
 			ToggleEnable("cg_unlockall_items")
+		end)
+
+	local lootbutton = menu:AddButtonVariant(GenericButtonSettings.Variants.Select,
+		"@LUA_MENU_UNLOCKALL_LOOT", "@LUA_MENU_UNLOCKALL_LOOT_DESC", function()
+			return IsEnabled("cg_unlockall_loot")
+		end, function()
+			ToggleEnable("cg_unlockall_loot")
+		end, function()
+			ToggleEnable("cg_unlockall_loot")
 		end)
 
 	local classesbutton = menu:AddButtonVariant(GenericButtonSettings.Variants.Select,
@@ -174,22 +201,4 @@ function CreateEditButton(menu, dvar, name, desc, callback)
 	end, function()
 		GoDirection(dvar, "up", callback)
 	end)
-end
-
-local isclasslocked = Cac.IsCustomClassLocked
-Cac.IsCustomClassLocked = function(...)
-	if (Engine.GetDvarBool("cg_unlockall_classes")) then
-		return false
-	end
-
-	return isclasslocked(table.unpack({...}))
-end
-
-local isdlcclasslocked = Cac.IsCustomClassDlcLocked
-Cac.IsCustomClassDlcLocked = function(...)
-	if (Engine.GetDvarBool("cg_unlockall_classes")) then
-		return false
-	end
-
-	return isdlcclasslocked(table.unpack({...}))
 end

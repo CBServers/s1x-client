@@ -10,7 +10,7 @@ end
 function CanChangeTeam()
 	local f9_local0 = GameX.GetGameMode()
 	local f9_local1
-	if f9_local0 ~= "aliens" and Engine.TableLookup( GameTypesTable.File, GameTypesTable.Cols.Ref, f9_local0, GameTypesTable.Cols.TeamChoice ) == "1" then
+	if f9_local0 ~= "aliens" and Engine.TableLookup(GameTypesTable.File, GameTypesTable.Cols.Ref, f9_local0, GameTypesTable.Cols.TeamChoice) == "1" then
 		f9_local1 = not MLG.IsMLGSpectator()
 	else
 		f9_local1 = false

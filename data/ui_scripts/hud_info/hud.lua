@@ -106,17 +106,17 @@ function infoelement(data)
 			b = 0.6,
 		}
 	})
-	
+
 	value:addElement(LUI.UITimer.new(data.interval, "update"))
 	value:setText(data.getvalue())
 	value:addEventHandler("update", function()
 		value:setText(data.getvalue())
 	end)
-	
+
 	container:addElement(background)
 	container:addElement(label)
 	container:addElement(value)
-	
+
 	return container
 end
 
@@ -156,7 +156,7 @@ LUI.MenuBuilder.m_types_build["mp_hud"] = function()
 		infobar:removeAllChildren()
 		populateinfobar(infobar)
 	end)
-	
+
 	hud.static:addElement(infobar)
 
 	return hud
