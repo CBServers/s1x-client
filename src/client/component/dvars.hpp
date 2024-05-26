@@ -24,4 +24,6 @@ namespace dvars
 		void set_int(const std::string& name, int integer);
 		void set_string(const std::string& name, const std::string& string);
 	}
+
+	std::string get_string(const std::string& dvar);
 }

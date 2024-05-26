@@ -4,6 +4,7 @@
 
 #include "party.hpp"
 #include "console.hpp"
+#include "dvars.hpp"
 #include "command.hpp"
 #include "network.hpp"
 #include "scheduler.hpp"
@@ -613,6 +614,15 @@ namespace party
 				if (gametype.empty())
 				{
 					const auto* error_msg = "Invalid gametype.";
+					console::error("%s\n", error_msg);
+					game::Com_Error(game::ERR_DROP, "%s", error_msg);
+					return;
+				}
+
+				const auto is_private = info.get("isPrivate");
+				if (is_private == "1"s && dvars::get_string("password").empty())
+				{
+					const auto* error_msg = "Password is not set.";
 					console::error("%s\n", error_msg);
 					game::Com_Error(game::ERR_DROP, "%s", error_msg);
 					return;

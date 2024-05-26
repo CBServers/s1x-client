@@ -197,6 +197,17 @@ namespace dvars
 		}
 	}
 
+	std::string get_string(const std::string& dvar)
+	{
+		const auto* dvar_value = game::Dvar_FindVar(dvar.data());
+		if (dvar_value)
+		{
+			return { dvar_value->current.string };
+		}
+
+		return {};
+	}
+
 	utils::hook::detour dvar_register_bool_hook;
 	utils::hook::detour dvar_register_float_hook;
 	utils::hook::detour dvar_register_int_hook;

@@ -51,7 +51,7 @@ namespace branding
 
 			scheduler::loop([]()
 			{
-				if (dvars::ui_showBranding && !dvars::ui_showBranding->current.enabled && game::CL_IsCgameInitialized())
+				if (dvars::ui_showBranding && !dvars::ui_showBranding->current.enabled && (game::CL_IsCgameInitialized() && !game::VirtualLobby_Loaded()))
 				{
 					return;
 				}
