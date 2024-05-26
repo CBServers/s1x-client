@@ -1,17 +1,25 @@
-![license](https://img.shields.io/github/license/XLabsProject/s1x-client.svg)
-[![open bugs](https://img.shields.io/github/issues/XLabsProject/s1x-client/bug?label=bugs)](https://github.com/XLabsProject/s1x-client/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
-[![Build](https://github.com/XLabsProject/s1x-client/workflows/Build/badge.svg)](https://github.com/XLabsProject/s1x-client/actions)
-[![patreon](https://img.shields.io/badge/patreon-support-blue.svg?logo=patreon)](https://www.patreon.com/xlabsproject)
-[![discord](https://img.shields.io/endpoint?url=https://momo5502.com/iw4x/members-badge.php)](https://discord.gg/sKeVmR3)
+![license](https://img.shields.io/github/license/CBServers/s1x-client.svg)
+[![build](https://img.shields.io/github/actions/workflow/status/CBServers/s1x-client/build.yml?branch=main&label=Build&logo=github)](https://github.com/CBServers/s1x-client/actions)
+[![bugs](https://img.shields.io/github/issues/CBServers/s1x-client/bug?label=Bugs)](https://github.com/CBServers/s1x-client/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
+[![website](https://img.shields.io/badge/CBServers-Website-blue)](https://cbservers.xyz)
 
 
 # S1x: Client
+This is a fork of S1x/[s1-mod](https://git.alterware.dev/AlterWare/s1-mod).
+
+Originally developed by [AlterWare](https://alterware.dev) and [X Labs](https://xlabs.dev/).
+
+Thanks to all the original contributors.
 
 <p align="center">
   <img src="assets/github/banner.png?raw=true" />
 </p>
 
-<br/>
+## Download
+
+- **[Click here to get the latest release](https://github.com/CBServers/updater/raw/main/updater/s1x/s1x.exe)**
+- **You will need to drop this in your Call of Duty: Advanced Warfare installation folder. If you don't have Call of Duty: Advanced Warfare, get those game files first.**
+- The client is still in an early stage. It will have bugs!
 
 ## Compile from source
 
@@ -25,8 +33,6 @@
 |:----------------------------|:-----------------------------------------------|
 | `--copy-to=PATH`            | Optional, copy the EXE to a custom folder after build, define the path here if wanted. |
 | `--dev-build`               | Enable development builds of the client. |
-
-<br/>
 
 ## Disclaimer
 
