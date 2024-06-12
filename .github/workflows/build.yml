@@ -15,14 +15,20 @@ concurrency:
 
 jobs:
   build:
-    name: Build binaries
+    name: Build
     runs-on: windows-2022
     strategy:
+      fail-fast: false
       matrix:
         configuration:
-          - Debug
+          #- Debug
           - Release
     steps:
+      - name: Set Git to use LF line endings
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+          
       - name: Check out files
         uses: actions/checkout@v3.5.2
         with:
@@ -40,18 +46,19 @@ jobs:
       - name: Set up problem matching
         uses: ammaraskar/msvc-problem-matcher@master
 
-      - name: Build ${{matrix.configuration}} binaries
+      - name: Build ${{matrix.configuration}}
         run: msbuild /m /v:minimal /p:Configuration=${{matrix.configuration}} /p:Platform=x64 build/s1x.sln
 
-      - name: Upload ${{matrix.configuration}} binaries
+      - name: Upload ${{matrix.configuration}} binary
+        if: matrix.configuration == 'Release' && github.repository_owner == 'CBServers' && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
         uses: actions/upload-artifact@v3.1.2
         with:
-          name: ${{matrix.configuration}} binaries
+          name: ${{matrix.configuration}} Binary
           path: |
             build/bin/x64/${{matrix.configuration}}/s1x.exe
-            build/bin/x64/${{matrix.configuration}}/s1x.pdb
             
       - name: Upload ${{matrix.configuration}} data artifacts
+        if: matrix.configuration == 'Release' && github.repository_owner == 'CBServers' && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
         uses: actions/upload-artifact@v3.1.2
         with:
           name: ${{matrix.configuration}} data artifacts
@@ -61,45 +68,55 @@ jobs:
   deploy:
     name: Deploy artifacts
     needs: build
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop')
+    runs-on: windows-2022
+    if: github.repository_owner == 'CBServers' && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     steps:
-      - name: Setup main environment
-        if: github.ref == 'refs/heads/master'
-        run: echo "XLABS_MASTER_PATH=${{ secrets.XLABS_MASTER_SSH_PATH }}" >> $GITHUB_ENV
-
-      - name: Setup develop environment
-        if: github.ref == 'refs/heads/develop'
-        run: echo "XLABS_MASTER_PATH=${{ secrets.XLABS_MASTER_SSH_PATH_DEV }}" >> $GITHUB_ENV
-
       - name: Download Release binaries
         uses: actions/download-artifact@v3.0.2
         with:
-          name: Release binaries
-          
+          name: Release Binary
+
       - name: Download Release data artifacts
         uses: actions/download-artifact@v3.0.2
         with:
           name: Release data artifacts
           path: data
 
-      - name: Install SSH key
-        uses: shimataro/ssh-key-action@v2.5.1
-        with:
-          key: ${{ secrets.XLABS_MASTER_SSH_PRIVATE_KEY }}
-          known_hosts: 'just-a-placeholder-so-we-dont-get-errors'
+      - name: Download hashing executable
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/CBServers/updater/releases/download/v1.0.0/update-hasher.exe" -OutFile "update-hasher.exe"
 
-      - name: Add known hosts
-        run: ssh-keyscan -H ${{ secrets.XLABS_MASTER_SSH_ADDRESS }} >> ~/.ssh/known_hosts
+      - name: Generate hashed.json
+        run: |
+          .\update-hasher.exe
 
-      - name: Remove old data files
-        run: ssh ${{ secrets.XLABS_MASTER_SSH_USER }}@${{ secrets.XLABS_MASTER_SSH_ADDRESS }} rm -rf ${{ env.XLABS_MASTER_PATH }}/s1x/data/*
+      - name: Move files to s1x folder and rename hashes
+        run: |
+          mkdir s1x
+          Move-Item -Path .\s1x.exe -Destination .\s1x\
+          Move-Item -Path .\data -Destination .\s1x\
+          mv hashed.json s1x.json
 
-      - name: Upload s1x binary
-        run: rsync -avz s1x.exe ${{ secrets.XLABS_MASTER_SSH_USER }}@${{ secrets.XLABS_MASTER_SSH_ADDRESS }}:${{ env.XLABS_MASTER_PATH }}/s1x/
+      - name: Clone updater
+        run: |
+          git config --global user.name 'CBServers'
+          git config --global user.email '${{ secrets.OWNER_EMAIL }}'
+          $env:GIT_TERMINAL_PROMPT=0
+          $env:GIT_USERNAME="CBServers"
+          $env:GIT_PASSWORD="${{ secrets.REPO_PAT }}"
+          git clone https://$env:GIT_USERNAME:$env:GIT_PASSWORD@github.com/CBServers/updater.git
 
-      - name: Upload data files
-        run: rsync -avz ./data/ ${{ secrets.XLABS_MASTER_SSH_USER }}@${{ secrets.XLABS_MASTER_SSH_ADDRESS }}:${{ env.XLABS_MASTER_PATH }}/s1x/data/
+      - name: Copy files to updater and cleanup
+        run: |
+          Copy-Item -Path .\s1x.json -Destination .\updater\updater\ -Force
+          Copy-Item -Path .\s1x\* -Destination .\updater\updater\s1x\ -Recurse -Force
+          Remove-Item -Path .\s1x.json -Force
+          Remove-Item -Path .\s1x -Recurse -Force
+          Remove-Item -Path .\update-hasher.exe -Force
 
-      - name: Publish changes
-        run: ssh ${{ secrets.XLABS_MASTER_SSH_USER }}@${{ secrets.XLABS_MASTER_SSH_ADDRESS }} ${{ secrets.XLABS_MASTER_SSH_CHANGE_PUBLISH_COMMAND }}
+      - name: Push changes to updater
+        run: |
+          cd updater
+          git add .
+          git commit -m "Update artifacts"
+          git push origin main
