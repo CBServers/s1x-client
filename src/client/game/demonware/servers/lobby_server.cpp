@@ -163,8 +163,9 @@ namespace demonware
 		}
 		else
 		{
+#ifdef DEBUG
 			printf("[DW]: [lobby]: missing service '%s'\n", utils::string::va("%d", id));
-
+#endif
 			// return no error
 			byte_buffer buffer(data);
 			uint8_t task_id;
