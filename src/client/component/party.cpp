@@ -633,6 +633,9 @@ namespace party
 				try
 				{
 					sv_maxclients = std::stoi(info.get("sv_maxclients"));
+					//set client sv_maxclients dvar to match server so lui scoreboard can reflect correct amount
+					auto* sv_maxclients_dvar = game::Dvar_FindVar("sv_maxclients");
+					game::Dvar_SetInt(sv_maxclients_dvar, sv_maxclients);
 				}
 				catch([[maybe_unused]] const std::exception& ex)
 				{
