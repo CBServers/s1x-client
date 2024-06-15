@@ -179,7 +179,7 @@ FARPROC load_binary(const launcher::mode mode)
 	if (!utils::io::read_file(binary, &data))
 	{
 		throw std::runtime_error(utils::string::va(
-			"Failed to read game binary (%s)!\nPlease select the correct path in the launcher settings.",
+			"Failed to read game binary (%s)!\nPlease make sure you have s1x.exe in your AW installation folder.",
 			binary.data()));
 	}
 
