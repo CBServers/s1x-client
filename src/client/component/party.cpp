@@ -106,6 +106,17 @@ namespace party
 			return false;
 		}
 
+		int get_dvar_int(const std::string& dvar)
+		{
+			const auto* dvar_value = game::Dvar_FindVar(dvar.data());
+			if (dvar_value && dvar_value->current.integer)
+			{
+				return dvar_value->current.integer;
+			}
+
+			return 0;
+		}
+
 		void didyouknow_stub(const char* dvar_name, const char* string)
 		{
 			if (!party::sv_motd.empty())
@@ -541,7 +552,7 @@ namespace party
 				info.set("isPrivate", get_dvar_string("g_password").empty() ? "0" : "1");
 				info.set("clients", std::to_string(get_client_count()));
 				info.set("bots", std::to_string(get_bot_count()));
-				info.set("sv_maxclients", std::to_string(*game::mp::svs_numclients));
+				info.set("sv_maxclients", std::to_string(get_dvar_int("sv_maxclients")));
 				info.set("protocol", std::to_string(PROTOCOL));
 				info.set("playmode", utils::string::va("%i", game::Com_GetCurrentCoDPlayMode()));
 				info.set("sv_running", std::to_string(get_dvar_bool("sv_running")));
